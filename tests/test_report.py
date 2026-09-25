@@ -1,7 +1,7 @@
 from datetime import date
 
 from sentinel.agent import RepoResult
-from sentinel.report import render_markdown, summary_line, top_findings
+from sentinel.report import render_html, render_markdown, summary_line, top_findings
 
 RESULTS = [
     RepoResult(repo="o/healthy", status="ok", summary="All green.", cost_usd=0.1),
@@ -67,3 +67,21 @@ def test_top_findings_are_ranked_by_severity() -> None:
         "[high] broken: Release workflow fails (new)",
         "[low] broken: README stale",
     ]
+
+
+def test_html_email_escapes_text_and_shows_severity_and_resolved() -> None:
+    results = [
+        RepoResult(
+            repo="o/r",
+            status="warning",
+            summary="Uses <script> in `ci.yml`",
+            findings=[{**RESULTS[1].findings[0], "detail": "a < b"}],
+            resolved=RESULTS[1].resolved,
+        )
+    ]
+    page = render_html(results, day=date(2026, 9, 25))
+    assert "&lt;script&gt;" in page and "<script>" not in page
+    assert "<code" in page and "ci.yml</code>" in page
+    assert "a &lt; b" in page
+    assert ">high</span>" in page
+    assert "Resolved since last run" in page and "Old action pinned" in page

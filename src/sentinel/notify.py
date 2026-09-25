@@ -62,12 +62,14 @@ def telegram(text: str) -> None:
     urllib.request.urlopen(req, timeout=30).close()
 
 
-def email(cfg: dict[str, Any], subject: str, markdown: str) -> None:
+def email(cfg: dict[str, Any], subject: str, markdown: str, html: str) -> None:
+    """Send the report as HTML, with the Markdown as the plain-text part."""
     user = os.environ["SENTINEL_SMTP_USER"]
     to = os.environ.get("SENTINEL_EMAIL_TO") or cfg.get("to") or user
     msg = EmailMessage()
     msg["Subject"], msg["From"], msg["To"] = subject, user, to
     msg.set_content(markdown)
+    msg.add_alternative(html, subtype="html")
     with smtplib.SMTP_SSL(cfg["smtp_host"], cfg.get("smtp_port", 465), timeout=30) as smtp:
         smtp.login(user, os.environ["SENTINEL_SMTP_PASSWORD"])
         smtp.send_message(msg)

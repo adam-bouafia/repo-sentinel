@@ -13,7 +13,7 @@ from pathlib import Path
 from sentinel import notify
 from sentinel.agent import audit_all
 from sentinel.config import load_config
-from sentinel.report import render_markdown, summary_line, top_findings
+from sentinel.report import render_html, render_markdown, summary_line, top_findings
 from sentinel.state import load_state, previous_findings, save_state, update_state
 
 
@@ -72,7 +72,9 @@ async def run(args: argparse.Namespace) -> int:
     channels = {
         "desktop": lambda: notify.desktop(headline, top, report_path),
         "telegram": lambda: notify.telegram(f"{headline}\n\n{top}"),
-        "email": lambda: notify.email(n["email"], headline, markdown),
+        "email": lambda: notify.email(
+            n["email"], headline, markdown, render_html(results, day=today)
+        ),
     }
     for name, send in channels.items():
         if n.get(name, {}).get("enabled"):
