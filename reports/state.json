@@ -4,13 +4,19 @@
       "category": "ci",
       "first_seen": "2026-09-25",
       "severity": "medium",
-      "title": "Workflows pin actions/checkout@v4 and actions/upload-artifact@v4, which run on the removed node20 runtime"
+      "title": "Workflows pin actions/checkout@v4 and actions/upload-artifact@v4, which declare the removed node20 runtime"
     },
     "country-intensity-dataset-undated": {
       "category": "docs",
       "first_seen": "2026-09-25",
       "severity": "info",
       "title": "Bundled country carbon-intensity dataset has no documented source or vintage"
+    },
+    "daily-rollover-utc-vs-local": {
+      "category": "other",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "Daily total rolls over at UTC midnight while weekly/monthly totals use local time, and the displayed reset date can be off by one day"
     },
     "gschemas-compiled-tracked": {
       "category": "metadata",
@@ -25,7 +31,7 @@
       "title": "INSTALL.md has several empty sections, including System Requirements"
     },
     "metadata-version-stale": {
-      "category": "release",
+      "category": "metadata",
       "first_seen": "2026-09-25",
       "severity": "low",
       "title": "metadata.json still declares version 8 while EGO and git tags are at 11"
@@ -36,11 +42,17 @@
       "severity": "low",
       "title": "No Dependabot or Renovate configuration for GitHub Actions"
     },
+    "periodic-export-timer-never-fires": {
+      "category": "other",
+      "first_seen": "2026-09-25",
+      "severity": "medium",
+      "title": "\"Enable Periodic Export\" timer is destroyed and recreated on every update cycle, so it never fires"
+    },
     "prefs-update-interval-min-mismatch": {
       "category": "other",
       "first_seen": "2026-09-25",
       "severity": "low",
-      "title": "Preferences allow a 1-second update interval that the extension silently clamps to 2"
+      "title": "Preferences allow a 1-second update interval that the extension clamps to 2, and the energy maths uses the unclamped value"
     },
     "readme-changelog-unreleased": {
       "category": "docs",
