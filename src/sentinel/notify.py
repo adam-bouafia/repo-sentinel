@@ -64,8 +64,9 @@ def telegram(text: str) -> None:
 
 def email(cfg: dict[str, Any], subject: str, markdown: str) -> None:
     user = os.environ["SENTINEL_SMTP_USER"]
+    to = os.environ.get("SENTINEL_EMAIL_TO") or cfg.get("to") or user
     msg = EmailMessage()
-    msg["Subject"], msg["From"], msg["To"] = subject, user, cfg["to"]
+    msg["Subject"], msg["From"], msg["To"] = subject, user, to
     msg.set_content(markdown)
     with smtplib.SMTP_SSL(cfg["smtp_host"], cfg.get("smtp_port", 465), timeout=30) as smtp:
         smtp.login(user, os.environ["SENTINEL_SMTP_PASSWORD"])

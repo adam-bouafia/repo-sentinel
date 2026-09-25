@@ -1,6 +1,6 @@
 """Findings memory between runs: what is new, still open, or resolved since last time.
 
-Why: without it every weekly audit starts from zero, the report cannot say what
+Why: without it every audit starts from zero, the report cannot say what
 changed, and known non-issues have to be restated in the notes forever.
 """
 

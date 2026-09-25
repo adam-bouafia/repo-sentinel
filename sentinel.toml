@@ -26,10 +26,9 @@ repo = "adam-bouafia/repo-sentinel"   # one pinned digest issue, updated each ru
 enabled = false           # needs SENTINEL_TELEGRAM_TOKEN and SENTINEL_TELEGRAM_CHAT_ID
 
 [notify.email]
-enabled = false           # needs SENTINEL_SMTP_USER and SENTINEL_SMTP_PASSWORD
+enabled = false           # needs SENTINEL_SMTP_USER, SENTINEL_SMTP_PASSWORD, SENTINEL_EMAIL_TO
 smtp_host = "smtp.gmail.com"
 smtp_port = 465
-to = "you@example.com"
 
 # One block per watched repo. `notes` is free-form context for the agent:
 # what the project is, where it is published, what "up to date" means for it.

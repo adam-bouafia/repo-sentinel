@@ -72,7 +72,7 @@ Output in `reports/`:
 
 ## Scheduling
 
-### systemd (local, weekly)
+### systemd (local, twice a month)
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -85,16 +85,16 @@ journalctl --user -u repo-sentinel -f
 
 The service expects the project at `~/Documents/repo-sentinel` with the venv in `.venv`.
 
-### GitHub Actions (cloud, weekly)
+### GitHub Actions (cloud, twice a month)
 
-`.github/workflows/sentinel.yml` runs every Monday and on manual dispatch. It commits the report to `reports/` and updates the digest issue. Repository secrets:
+`.github/workflows/sentinel.yml` runs on the 1st and 15th of each month and on manual dispatch. It commits the report to `reports/` and updates the digest issue. Repository secrets:
 
 | Secret | Purpose |
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude API access |
 | `SENTINEL_GH_TOKEN` | fine-grained PAT with read access to the watched repos, plus contents/pull-requests write if PRs are on and issues write on this repo. The default `GITHUB_TOKEN` only covers this repo. |
 | `SENTINEL_TELEGRAM_TOKEN`, `SENTINEL_TELEGRAM_CHAT_ID` | optional, Telegram |
-| `SENTINEL_SMTP_USER`, `SENTINEL_SMTP_PASSWORD` | optional, email |
+| `SENTINEL_SMTP_USER`, `SENTINEL_SMTP_PASSWORD`, `SENTINEL_EMAIL_TO` | optional, email (`SENTINEL_EMAIL_TO` defaults to the SMTP user) |
 
 ## Notifications
 
@@ -103,7 +103,7 @@ The service expects the project at `~/Documents/repo-sentinel` with the venv in 
 | Desktop | `[notify.desktop]` | `notify-send` and a session bus (skipped in CI) |
 | GitHub issue | `[notify.github_issue]` | one open issue labelled `sentinel-digest`, updated each run |
 | Telegram | `[notify.telegram]` | `SENTINEL_TELEGRAM_TOKEN`, `SENTINEL_TELEGRAM_CHAT_ID` |
-| Email | `[notify.email]` | `SENTINEL_SMTP_USER`, `SENTINEL_SMTP_PASSWORD` (Gmail: an app password) |
+| Email | `[notify.email]` | `SENTINEL_SMTP_USER`, `SENTINEL_SMTP_PASSWORD` (Gmail: an app password), `SENTINEL_EMAIL_TO` |
 
 ## Development
 
