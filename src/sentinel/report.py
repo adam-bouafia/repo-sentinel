@@ -14,7 +14,8 @@ STATUS_ICON = {"ok": "OK", "warning": "WARN", "failing": "FAIL", "error": "ERROR
 def summary_line(results: list[RepoResult]) -> str:
     counts = Counter(r.status for r in results)
     parts = [f"{counts[s]} {s}" for s in ("failing", "warning", "error", "ok") if counts[s]]
-    return f"repo-sentinel: {len(results)} repos - " + ", ".join(parts)
+    noun = "repo" if len(results) == 1 else "repos"
+    return f"repo-sentinel: {len(results)} {noun} - " + ", ".join(parts)
 
 
 def render_markdown(results: list[RepoResult], *, day: date | None = None) -> str:

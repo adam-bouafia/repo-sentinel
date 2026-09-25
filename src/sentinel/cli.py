@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import dataclasses
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -14,6 +15,18 @@ from sentinel.agent import audit_all
 from sentinel.config import load_config
 from sentinel.report import render_markdown, summary_line, top_findings
 from sentinel.state import load_state, previous_findings, save_state, update_state
+
+
+def _notify_failed(channel: str, error: Exception) -> None:
+    """Log a failed channel; in GitHub Actions also as a warning on the run page.
+
+    Why: a broken channel must not fail the run, but a line buried in the log is
+    easy to miss.
+    """
+    message = f"notify {channel} failed: {error}"
+    print(message, file=sys.stderr)
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::warning title=notify {channel}::{message}", flush=True)
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -66,12 +79,12 @@ async def run(args: argparse.Namespace) -> int:
             try:
                 send()
             except Exception as e:  # noqa: BLE001 - a broken channel must not hide the others
-                print(f"notify {name} failed: {e}", file=sys.stderr)
+                _notify_failed(name, e)
     if n.get("github_issue", {}).get("enabled"):
         try:
             print("digest:", await notify.github_issue(n["github_issue"]["repo"], markdown))
         except Exception as e:  # noqa: BLE001
-            print(f"notify github_issue failed: {e}", file=sys.stderr)
+            _notify_failed("github_issue", e)
     return 0
 
 

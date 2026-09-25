@@ -39,6 +39,10 @@ def test_summary_line_counts_statuses() -> None:
     assert summary_line(RESULTS) == "repo-sentinel: 3 repos - 1 failing, 1 error, 1 ok"
 
 
+def test_summary_line_uses_singular_for_one_repo() -> None:
+    assert summary_line(RESULTS[:1]) == "repo-sentinel: 1 repo - 1 ok"
+
+
 def test_markdown_lists_findings_errors_and_escapes_pipes() -> None:
     md = render_markdown(RESULTS, day=date(2026, 9, 25))
     assert md.startswith("# repo-sentinel report 2026-09-25")
