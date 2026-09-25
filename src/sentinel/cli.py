@@ -13,6 +13,7 @@ from sentinel import notify
 from sentinel.agent import audit_all
 from sentinel.config import load_config
 from sentinel.report import render_markdown, summary_line, top_findings
+from sentinel.state import load_state, previous_findings, save_state, update_state
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -31,11 +32,22 @@ async def run(args: argparse.Namespace) -> int:
         f"(PRs {'on' if agent_cfg.allow_prs else 'off'})",
         flush=True,
     )
-    results = await audit_all(repos, agent_cfg, verbose=args.verbose)
+    today = date.today()
+    state_path = cfg.report_dir / "state.json"
+    state = load_state(state_path)
+    results = await audit_all(
+        repos,
+        agent_cfg,
+        previous={r.name: previous_findings(state, r.name) for r in repos},
+        log_dir=cfg.report_dir / "runs" / today.isoformat(),
+        verbose=args.verbose,
+    )
+    for result in results:
+        update_state(state, result, today)
+    save_state(state_path, state)
 
-    markdown = render_markdown(results)
-    cfg.report_dir.mkdir(parents=True, exist_ok=True)
-    report_path = cfg.report_dir / f"{date.today().isoformat()}.md"
+    markdown = render_markdown(results, day=today)
+    report_path = cfg.report_dir / f"{today.isoformat()}.md"
     report_path.write_text(markdown)
     headline = summary_line(results)
     print(f"{headline}\nreport: {report_path}")

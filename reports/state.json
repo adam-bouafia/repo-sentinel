@@ -1,0 +1,64 @@
+{
+  "adam-bouafia/Gnome-Shell-CO2-Consumption-monitor-extension": {
+    "actions-node20-outdated": {
+      "category": "ci",
+      "first_seen": "2026-09-25",
+      "severity": "medium",
+      "title": "actions/checkout@v4 and actions/upload-artifact@v4 run on the removed node20 runtime (latest is v7.0.1)"
+    },
+    "country-intensity-dataset-undated": {
+      "category": "other",
+      "first_seen": "2026-09-25",
+      "severity": "info",
+      "title": "Bundled country carbon-intensity dataset has no documented source or vintage"
+    },
+    "ego-v11-unreviewed": {
+      "category": "release",
+      "first_seen": "2026-09-25",
+      "severity": "info",
+      "title": "EGO version 11 is uploaded but still unreviewed; version 10 remains the active release"
+    },
+    "gschemas-compiled-tracked": {
+      "category": "other",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "Pre-compiled schemas/gschemas.compiled is committed to the repository"
+    },
+    "install-md-empty-sections": {
+      "category": "docs",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "INSTALL.md has several empty sections, including System Requirements"
+    },
+    "metadata-version-stale": {
+      "category": "metadata",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "metadata.json still declares version 8 while EGO and the git tags are at 11"
+    },
+    "no-dependency-automation": {
+      "category": "dependency",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "No Dependabot or Renovate configuration for GitHub Actions"
+    },
+    "prefs-update-interval-min-mismatch": {
+      "category": "other",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "Preferences allow a 1-second update interval that the extension silently clamps to 2"
+    },
+    "readme-changelog-unreleased": {
+      "category": "docs",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "README changelog has only an \"Unreleased\" entry despite 11 published versions"
+    },
+    "readme-shell-version-drift": {
+      "category": "docs",
+      "first_seen": "2026-09-25",
+      "severity": "low",
+      "title": "README claims \"Tested on GNOME 43\u201348\" while the extension ships support for 45\u201351"
+    }
+  }
+}

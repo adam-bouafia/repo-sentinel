@@ -12,6 +12,8 @@ from typing import Any
 class RepoConfig:
     name: str
     notes: str = ""
+    # finding key -> reason; the agent does not report these and the code drops them
+    accepted: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -23,6 +25,9 @@ class AgentConfig:
     task_budget_tokens: int = 150_000
     concurrency: int = 2
     allow_prs: bool = True
+    review_prs: bool = True  # an independent reviewer must approve every fix PR
+    review_model: str = ""  # empty = same as model
+    review_budget_usd: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -41,7 +46,8 @@ def load_config(path: Path) -> Config:
     """
     raw = tomllib.loads(path.read_text())
     repos = [
-        RepoConfig(name=r["name"], notes=r.get("notes", "").strip()) for r in raw.get("repos", [])
+        RepoConfig(name=r["name"], notes=r.get("notes", "").strip(), accepted=r.get("accepted", {}))
+        for r in raw.get("repos", [])
     ]
     if not repos:
         raise ValueError(f"{path}: no [[repos]] configured")

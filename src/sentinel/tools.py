@@ -3,17 +3,21 @@
 Every tool is a closure over a single repo, so an audit of repo A cannot read from
 or write to repo B. Write access is limited to `open_fix_pr`, which enforces the
 autonomy rules in code: new sentinel/* branch only, never the default branch,
-never merges, no duplicate PRs.
+never merges, no duplicate PRs, every bumped version must exist upstream, and an
+independent reviewer must approve the diff.
 """
 
 from __future__ import annotations
 
 import asyncio
 import base64
+import difflib
 import json
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Awaitable, Callable
 from datetime import date
 from typing import Any
 
@@ -26,6 +30,11 @@ BRANCH_PREFIX = "sentinel/"
 MAX_PR_FILES = 10
 MAX_FILE_CHARS = 100_000
 MAX_LOG_CHARS = 15_000
+MAX_DIFF_CHARS = 60_000
+DIFF_CONTEXT = 20  # lines around each change, so the reviewer sees e.g. workflow triggers
+
+# Takes the PR as text (title, body, diff), returns (approved, reason).
+Reviewer = Callable[[str], Awaitable[tuple[bool, str]]]
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
 
@@ -76,6 +85,57 @@ async def lookup_upstream_version(source: str, name: str) -> dict[str, Any]:
     raise ValueError(f"unknown source {source!r}")
 
 
+def _url_exists(url: str) -> bool:
+    try:
+        _get_json(url)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+    return True
+
+
+async def version_exists(source: str, name: str, version: str) -> bool:
+    """Whether `version` of a package or project is actually published.
+
+    Why: a model can name a version that does not exist; a bump to it breaks the
+    build, and an unknown package name is free for anyone to register.
+
+    Args:
+        source: "pypi", "npm" or "github" (version is a tag, e.g. v7 or v7.0.1).
+        name: package or owner/repo.
+        version: the exact version the PR pins.
+
+    Raises:
+        ValueError: for an unknown source.
+    """
+    quoted = urllib.parse.quote(name, safe="@/")
+    v = urllib.parse.quote(version, safe="")
+    if source == "pypi":
+        return await asyncio.to_thread(_url_exists, f"https://pypi.org/pypi/{quoted}/{v}/json")
+    if source == "npm":
+        return await asyncio.to_thread(_url_exists, f"https://registry.npmjs.org/{quoted}/{v}")
+    if source == "github":
+        try:
+            await api(f"repos/{name}/git/ref/tags/{v}")
+        except GhError:
+            return False
+        return True
+    raise ValueError(f"unknown source {source!r}")
+
+
+def unified_diff(path: str, old: str, new: str) -> str:
+    return "".join(
+        difflib.unified_diff(
+            old.splitlines(keepends=True),
+            new.splitlines(keepends=True),
+            fromfile=f"a/{path}",
+            tofile=f"b/{path}",
+            n=DIFF_CONTEXT,
+        )
+    )
+
+
 async def _safe(coro: Any, fallback: Any) -> Any:
     try:
         return await coro
@@ -83,19 +143,22 @@ async def _safe(coro: Any, fallback: Any) -> Any:
         return {"unavailable": str(e)} if fallback is None else fallback
 
 
-def build_repo_server(repo: str, *, allow_prs: bool) -> Any:
+def build_repo_server(repo: str, *, allow_prs: bool, reviewer: Reviewer | None = None) -> Any:
     """Create the MCP server bound to `repo`.
 
     Args:
         repo: owner/name of the repository under audit.
         allow_prs: when False, open_fix_pr refuses and the agent only reports.
+        reviewer: must approve each PR diff before it is opened; None skips review.
     """
     return create_sdk_mcp_server(
-        name=SERVER_NAME, version="0.1.0", tools=build_repo_tools(repo, allow_prs=allow_prs)
+        name=SERVER_NAME,
+        version="0.1.0",
+        tools=build_repo_tools(repo, allow_prs=allow_prs, reviewer=reviewer),
     )
 
 
-def build_repo_tools(repo: str, *, allow_prs: bool) -> list[Any]:
+def build_repo_tools(repo: str, *, allow_prs: bool, reviewer: Reviewer | None = None) -> list[Any]:
     """The tool objects behind build_repo_server, exposed for tests."""
 
     @tool(
@@ -246,6 +309,8 @@ def build_repo_tools(repo: str, *, allow_prs: bool) -> list[Any]:
         "Open a pull request with a small, safe fix (e.g. version bump, metadata update). "
         "Creates a new sentinel/* branch from the default branch with one commit containing "
         "the given full file contents. Never pushes to the default branch and never merges. "
+        "List every version bump in `bumps`; each is checked to exist upstream. An "
+        "independent reviewer sees only the title, body and diff and may reject the PR. "
         "Only use for changes you are confident in; report everything else as a finding.",
         {
             "type": "object",
@@ -258,6 +323,18 @@ def build_repo_tools(repo: str, *, allow_prs: bool) -> list[Any]:
                         "type": "object",
                         "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
                         "required": ["path", "content"],
+                    },
+                },
+                "bumps": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "source": {"type": "string", "enum": ["pypi", "npm", "github"]},
+                            "name": {"type": "string"},
+                            "version": {"type": "string"},
+                        },
+                        "required": ["source", "name", "version"],
                     },
                 },
             },
@@ -273,6 +350,10 @@ def build_repo_tools(repo: str, *, allow_prs: bool) -> list[Any]:
             return _error(f"a fix PR must change between 1 and {MAX_PR_FILES} files")
         if any(f["path"].startswith("/") or ".." in f["path"].split("/") for f in files):
             return _error("file paths must be relative to the repo root")
+        bumps = args.get("bumps", [])
+        for b in bumps:
+            if not any(b["version"] in f["content"] for f in files):
+                return _error(f"bump {b['name']} {b['version']} does not appear in any file")
 
         branch = f"{BRANCH_PREFIX}{_slug(args['title'])}-{date.today():%Y%m%d}"
         prs = await api(f"repos/{repo}/pulls?state=open&per_page=100")
@@ -282,9 +363,40 @@ def build_repo_tools(repo: str, *, allow_prs: bool) -> list[Any]:
             ):
                 return _error(f"an open sentinel PR already covers this: {p['html_url']}")
 
+        for b in bumps:
+            try:
+                exists = await version_exists(b["source"], b["name"], b["version"])
+            except Exception as e:  # noqa: BLE001 - unverifiable means no PR
+                return _error(f"could not verify {b['name']} {b['version']}: {e}")
+            if not exists:
+                return _error(f"{b['source']} has no {b['name']} {b['version']}; not opening a PR")
+
         try:
             meta = await api(f"repos/{repo}")
             base = meta["default_branch"]
+            diffs = []
+            for f in files:
+                try:
+                    data = await api(f"repos/{repo}/contents/{f['path']}?ref={base}")
+                    old = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                except GhError:
+                    old = ""  # new file
+                if len(old) >= MAX_FILE_CHARS:
+                    return _error(f"{f['path']} is longer than read_file returns; edit it by hand")
+                diffs.append(unified_diff(f["path"], old, f["content"]))
+            diff = "".join(diffs)
+            if not diff:
+                return _error("the files are identical to the default branch; nothing to fix")
+            if len(diff) > MAX_DIFF_CHARS:
+                return _error("the diff is too large for a mechanical fix; report it instead")
+            if reviewer:
+                approved, reason = await reviewer(
+                    f"Title: {args['title']}\n\nBody:\n{args['body']}\n\n"
+                    f"Declared bumps: {json.dumps(bumps)}\n\nDiff:\n{diff}"
+                )
+                if not approved:
+                    return _error(f"reviewer rejected the PR: {reason}. Report it as a finding.")
+
             head = await api(f"repos/{repo}/git/ref/heads/{base}")
             base_sha = head["object"]["sha"]
             base_commit = await api(f"repos/{repo}/git/commits/{base_sha}")

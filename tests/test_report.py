@@ -18,9 +18,18 @@ RESULTS = [
                 "detail": "Upload step 400s.",
                 "evidence": "run 123",
                 "pr_url": "https://github.com/o/broken/pull/7",
+                "seen": "new",
             },
-            {"severity": "low", "category": "docs", "title": "README stale", "detail": "x"},
+            {
+                "severity": "low",
+                "category": "docs",
+                "title": "README stale",
+                "detail": "x",
+                "seen": "recurring",
+                "first_seen": "2026-09-01",
+            },
         ],
+        resolved=[{"key": "k", "severity": "medium", "title": "Old action pinned"}],
     ),
     RepoResult(repo="o/crashed", error="ProcessError: boom"),
 ]
@@ -41,8 +50,16 @@ def test_markdown_lists_findings_errors_and_escapes_pipes() -> None:
     assert "## o/healthy" not in md
 
 
+def test_markdown_marks_new_recurring_and_resolved() -> None:
+    md = render_markdown(RESULTS, day=date(2026, 9, 25))
+    assert "| o/broken | FAIL | 2 (1 new) |" in md
+    assert "*ci* - new" in md
+    assert "*docs* - open since 2026-09-01" in md
+    assert "### Resolved since last run\n\n- [medium] Old action pinned" in md
+
+
 def test_top_findings_are_ranked_by_severity() -> None:
     assert top_findings(RESULTS) == [
-        "[high] broken: Release workflow fails",
+        "[high] broken: Release workflow fails (new)",
         "[low] broken: README stale",
     ]

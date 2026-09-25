@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date
+from typing import Any
 
 from sentinel.agent import SEVERITIES, RepoResult
 
@@ -29,17 +30,19 @@ def render_markdown(results: list[RepoResult], *, day: date | None = None) -> st
     ]
     for r in results:
         summary = (r.error or r.summary).replace("|", "\\|").replace("\n", " ")
-        lines.append(f"| {r.repo} | {STATUS_ICON[r.status]} | {len(r.findings)} | {summary} |")
+        new = sum(f.get("seen") == "new" for f in r.findings)
+        count = f"{len(r.findings)} ({new} new)" if new else str(len(r.findings))
+        lines.append(f"| {r.repo} | {STATUS_ICON[r.status]} | {count} | {summary} |")
 
     for r in results:
-        if not r.findings and not r.error:
+        if not r.findings and not r.error and not r.resolved:
             continue
         lines += ["", f"## {r.repo}", ""]
         if r.error:
             lines += [f"Audit failed: `{r.error}`", ""]
         for f in r.findings:
             lines.append(f"### [{f['severity']}] {f['title']}")
-            lines.append(f"*{f['category']}*")
+            lines.append(f"*{f['category']}* - {_seen(f)}")
             lines += ["", f["detail"]]
             if f.get("evidence"):
                 lines += ["", f"Evidence: {f['evidence']}"]
@@ -48,7 +51,17 @@ def render_markdown(results: list[RepoResult], *, day: date | None = None) -> st
             if f.get("pr_url"):
                 lines += ["", f"PR: {f['pr_url']}"]
             lines.append("")
+        if r.resolved:
+            lines += ["### Resolved since last run", ""]
+            lines += [f"- [{f['severity']}] {f['title']}" for f in r.resolved]
+            lines.append("")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _seen(finding: dict[str, Any]) -> str:
+    if finding.get("seen") == "recurring":
+        return f"open since {finding['first_seen']}"
+    return "new"
 
 
 def top_findings(results: list[RepoResult], limit: int = 5) -> list[str]:
@@ -56,4 +69,8 @@ def top_findings(results: list[RepoResult], limit: int = 5) -> list[str]:
         ((f, r.repo) for r in results for f in r.findings),
         key=lambda x: SEVERITIES.index(x[0]["severity"]),
     )
-    return [f"[{f['severity']}] {repo.split('/')[-1]}: {f['title']}" for f, repo in ranked[:limit]]
+    return [
+        f"[{f['severity']}] {repo.split('/')[-1]}: {f['title']}"
+        + (" (new)" if f.get("seen") == "new" else "")
+        for f, repo in ranked[:limit]
+    ]
