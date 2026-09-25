@@ -4,22 +4,16 @@
       "category": "ci",
       "first_seen": "2026-09-25",
       "severity": "medium",
-      "title": "actions/checkout@v4 and actions/upload-artifact@v4 run on the removed node20 runtime (latest is v7.0.1)"
+      "title": "Workflows pin actions/checkout@v4 and actions/upload-artifact@v4, which run on the removed node20 runtime"
     },
     "country-intensity-dataset-undated": {
-      "category": "other",
+      "category": "docs",
       "first_seen": "2026-09-25",
       "severity": "info",
       "title": "Bundled country carbon-intensity dataset has no documented source or vintage"
     },
-    "ego-v11-unreviewed": {
-      "category": "release",
-      "first_seen": "2026-09-25",
-      "severity": "info",
-      "title": "EGO version 11 is uploaded but still unreviewed; version 10 remains the active release"
-    },
     "gschemas-compiled-tracked": {
-      "category": "other",
+      "category": "metadata",
       "first_seen": "2026-09-25",
       "severity": "low",
       "title": "Pre-compiled schemas/gschemas.compiled is committed to the repository"
@@ -31,10 +25,10 @@
       "title": "INSTALL.md has several empty sections, including System Requirements"
     },
     "metadata-version-stale": {
-      "category": "metadata",
+      "category": "release",
       "first_seen": "2026-09-25",
       "severity": "low",
-      "title": "metadata.json still declares version 8 while EGO and the git tags are at 11"
+      "title": "metadata.json still declares version 8 while EGO and git tags are at 11"
     },
     "no-dependency-automation": {
       "category": "dependency",
