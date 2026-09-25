@@ -1,0 +1,46 @@
+name: Sentinel
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # Mondays 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      no_pr:
+        description: Report only, do not open PRs
+        type: boolean
+        default: false
+
+concurrency:
+  group: sentinel
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install .
+
+      - name: Run audit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.SENTINEL_GH_TOKEN }}
+          SENTINEL_TELEGRAM_TOKEN: ${{ secrets.SENTINEL_TELEGRAM_TOKEN }}
+          SENTINEL_TELEGRAM_CHAT_ID: ${{ secrets.SENTINEL_TELEGRAM_CHAT_ID }}
+          SENTINEL_SMTP_USER: ${{ secrets.SENTINEL_SMTP_USER }}
+          SENTINEL_SMTP_PASSWORD: ${{ secrets.SENTINEL_SMTP_PASSWORD }}
+        run: sentinel run -v ${{ inputs.no_pr && '--no-pr' || '' }}
+
+      - name: Commit report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          git diff --cached --quiet || git commit -m "chore: sentinel report $(date -u +%F)"
+          git push

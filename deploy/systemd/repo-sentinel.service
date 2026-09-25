@@ -1,0 +1,12 @@
+[Unit]
+Description=repo-sentinel audit of watched GitHub repositories
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Documents/repo-sentinel
+ExecStart=%h/Documents/repo-sentinel/.venv/bin/sentinel run
+# Optional Telegram/email secrets: KEY=value lines, chmod 600
+EnvironmentFile=-%h/.config/repo-sentinel/env
+Nice=10

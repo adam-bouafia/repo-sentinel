@@ -1,0 +1,47 @@
+# repo-sentinel configuration
+
+[agent]
+model = "claude-opus-5"
+effort = "high"
+max_turns = 40
+task_budget_tokens = 150000  # soft budget the agent sees and paces itself against
+max_budget_usd = 3.0      # hard kill switch per repo; a run cut off here loses its report
+concurrency = 2           # repos audited in parallel
+allow_prs = true          # open fix PRs on sentinel/* branches (never merges)
+
+[report]
+dir = "reports"
+
+[notify.desktop]
+enabled = true
+
+[notify.github_issue]
+enabled = true
+repo = "adam-bouafia/repo-sentinel"   # one pinned digest issue, updated each run
+
+[notify.telegram]
+enabled = false           # needs SENTINEL_TELEGRAM_TOKEN and SENTINEL_TELEGRAM_CHAT_ID
+
+[notify.email]
+enabled = false           # needs SENTINEL_SMTP_USER and SENTINEL_SMTP_PASSWORD
+smtp_host = "smtp.gmail.com"
+smtp_port = 465
+to = "you@example.com"
+
+# One block per watched repo. `notes` is free-form context for the agent:
+# what the project is, where it is published, what "up to date" means for it.
+
+[[repos]]
+name = "adam-bouafia/Gnome-Shell-CO2-Consumption-monitor-extension"
+notes = """
+GNOME Shell extension, uuid co2consumption@gmail.com, published on
+extensions.gnome.org as extension 8601. Check that metadata.json shell-version
+covers the latest stable GNOME release, and that release/CI workflows are green.
+EGO upload state: https://extensions.gnome.org/api/v1/extensions/co2consumption@gmail.com/versions/
+Version status codes: 0 unreviewed, 1 rejected, 2 inactive, 3 active, 4 waiting
+for author. Uploading a new version auto-rejects older unreviewed versions with
+the same shell-version list, so a rejected version directly below a newer
+upload is expected, not a problem. The shexli EGO-M-004 error for "51" is a
+known false positive (upstream MR !282); the utils.js readFile X-004 warning is
+deliberate (procfs/sysfs reads only).
+"""
